@@ -4,6 +4,7 @@ boards:
     socs:
     - name: mbv32
 
+
   - name: kcu105_mbv32
     vendor: amd
     socs:

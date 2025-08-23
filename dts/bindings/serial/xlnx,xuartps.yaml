@@ -7,3 +7,30 @@ include: [uart-controller.yaml, pinctrl-device.yaml]
 properties:
   reg:
     required: true
+
+  xlnx,clock-freq:
+    type: int
+    description: Xilinx clock frequency
+  
+  xlnx,has-modem:
+    type: int
+    description: Indicates if the UART has modem control signals
+  xlnx,ip-name:
+    type: string
+    description: IP core name
+    
+  xlnx,name:
+    type: string
+    description: Instance name
+    
+  xlnx,uart-clk-freq-hz:
+    type: int
+    description: UART clock frequency in Hz
+    
+  port-number:
+    type: int
+    description: Port number
+    
+  cts-override:
+    type: boolean
+    description: Override CTS signal

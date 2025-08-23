@@ -5,7 +5,7 @@
 #
 
 identifier: mbv32
-name: MBV32 softcore CPU
+name: mbv32
 type: mcu
 simulation: qemu
 arch: riscv

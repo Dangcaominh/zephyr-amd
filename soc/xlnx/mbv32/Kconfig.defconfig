@@ -4,16 +4,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+
 if SOC_MBV32
 
 config MBV_CSR_DATA_WIDTH
-	int "Select Control/Status register width"
-	default 32
-
-config NUM_IRQS
-	default 44
+  int "Select Control/Status register width"
+  default 32
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
-	default $(dt_node_int_prop_int,/cpus/cpu@0,clock-frequency)
+  default $(dt_node_int_prop_int,/cpus/cpu@0,clock-frequency)
+config NUM_IRQS
+  default 14
 
-endif # SOC_MBV32
+endif
