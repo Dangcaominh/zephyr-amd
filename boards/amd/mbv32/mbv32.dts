@@ -129,6 +129,7 @@
         };
 
         aliases {
+            mailbox = &IPC_Mailbox_S0;
         };
 
         amba_pl: soc {
@@ -198,16 +199,16 @@
                 };
 
                 IPC_Mailbox_S0: IPC_Mailbox_S0@43600000 {
-			interrupt-parent = <&microblaze_intc_0>;
-			interrupts = < 0x2 0x2 >;
-			status = "okay";
-			compatible = "xlnx,mailbox";
-			xlnx,recv-fsl = <0>;
-			xlnx,ip-name = "mailbox";
-			xlnx,use-fsl = <0>;
-			reg = <0x0 0x43600000 0x0 0x10000>;
-			xlnx,send-fsl = <0>;
-			xlnx,name = "IPC_Mailbox";
-		};
+        			interrupt-parent = <&microblaze_intc_0>;
+        			interrupts = < 0x2 0x2 >;
+        			status = "okay";
+        			compatible = "xlnx,mailbox";
+        			xlnx,recv-it = <0>;
+        			xlnx,ip-name = "mailbox";
+                    #mbox-cells = <16>;
+        			reg = <0x43600000 0x10000>;
+        			xlnx,send-it = <0>;
+        			xlnx,name = "IPC_Mailbox";
+        		};
         };
 };
