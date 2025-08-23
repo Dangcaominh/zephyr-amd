@@ -11,6 +11,8 @@ config SOC_MBV32
   select RISCV_ISA_EXT_ZICSR
   select RISCV_ISA_EXT_ZIFENCEI
   select RISCV_ISA_RV32I
+  select RISCV_ISA_EXT_M
+  select RISCV_ISA_EXT_F
 
   imply ARCH_CPU_IDLE_CUSTOM
   select CLOCK_CONTROL

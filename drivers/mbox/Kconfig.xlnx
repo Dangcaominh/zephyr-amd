@@ -1,0 +1,8 @@
+# Copyright (c) 2025 Dang Cao Minh <dangcaominhheo@gmail.com>
+# SPDX-License-Identifier: Apache-2.0
+
+config MBOX_XILINX
+	bool "AXI MBOX XILINX driver"
+	depends on DT_HAS_XLNX_MAILBOX_ENABLED
+	help
+	  AXI MBOX XILINX driver for microblaze riscv core

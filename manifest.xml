@@ -1,0 +1,4 @@
+<manifest>
+    <remote name="local" fetch="."/>
+    <project name="zephyr" path="zephyr" revision="main" remote="local"/>
+</manifest>

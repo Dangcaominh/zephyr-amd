@@ -1,0 +1,198 @@
+/*
+ * Copyright (c) 2020 Xilinx Inc. All rights reserved.
+ *
+ * Author:
+ *       Appana Durga Kedareswara Rao <appanad.durga.rao@xilinx.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/dts-v1/;
+
+/ {
+        compatible = "system-device-tree-v1";
+        lops {
+                // compatible = "system-device-tree-v1,lop";
+                lop_1 {
+                        // modify to "nothing", is a remove operation
+                        compatible = "system-device-tree-v1,lop,select-v1";
+                        select_1;
+                        select_2 = "/.*:compatible:.*arm,cortex-r5.*";
+                        select_3 = "/.*:compatible:.*pmu-microblaze.*";
+                };
+                lop_2 {
+                        compatible = "system-device-tree-v1,lop,code-v1";
+                        code = "
+                            # Check for domain node
+                            for s in tree.__selected__:
+                                tree.delete(s.parent)
+                                tree.delete(s)
+                        ";
+                };
+                lop_3 {
+                        // modify to "nothing", is a remove operation
+                        compatible = "system-device-tree-v1,lop,modify";
+                        modify = "/rpu-bus::";
+                };
+                lop_4 {
+                      compatible = "system-device-tree-v1,lop,select-v1";
+                      // clear any old selections
+                      select_1;
+                      select_2 = "/domains";
+                };
+                lop_5 {
+                      compatible = "system-device-tree-v1,lop,select-v1";
+                      // clear any old selections
+                      select_1;
+                      select_2 = "/cpus/.*:compatible:.*arm,cortex-a53.*";
+                      select_3 = "/.*:status:.*okay.*";
+                      select_4 = "/.*:status:.*disabled.*";
+                      select_5 = "/.*:device_type:.*memory.*";
+                      select_6 = "/domains";
+                };
+
+                lop_7 {
+                      compatible = "system-device-tree-v1,lop,code-v1";
+                      code = "
+                          # Check for domain node
+                          from domain_access import update_mem_node
+                          from baremetalconfig_xlnx import get_label
+                          domain_node = []
+                          for n in __selected__:
+                              if re.search('domains', n.name):
+                                  domain_node = n
+                          # Peipheral node handling
+                          invalid_phandles = []
+                          valid_phandles = []
+                          if domain_node:
+                              shared_dev = []
+                              for n in domain_node.subnodes():
+                                  if n.propval('access') != [''] and n.propval('os,type') == ['']:
+                                      shared_dev.append(n)
+                              for n in domain_node.subnodes():
+                                  if n.propval('access') != [''] and  n.propval('os,type') != ['']:
+                                      if re.search('linux', n.propval('os,type', list)[0]):
+                                          valid_phandles.extend(n.propval('access'))
+                                          if n.propval('include'):
+                                              # Get shared memory nodes for Linux domain
+                                              linux_shared_dev = [dev_node for dev_node in shared_dev if dev_node.phandle in n.propval('include')]
+                                              for node1 in linux_shared_dev:
+                                                  valid_phandles.extend(node1.propval('access'))
+                                      else:
+                                          invalid_phandles.extend(n.propval('access'))
+
+                              invalid_phandles = [phandle for phandle in invalid_phandles if phandle not in valid_phandles]
+                              invalid_phandles = list(dict.fromkeys(invalid_phandles))
+
+                          node_list = []
+                          address_map = node.parent['address-map'].value
+                          na = node.parent['#ranges-address-cells'].value[0]
+                          ns = node.parent['#ranges-size-cells'].value[0]
+                          cells = na + ns
+                          phandles = []
+                          tmp = na
+                          while tmp < len(address_map):
+                              phandles.append(address_map[tmp])
+                              tmp = tmp + cells + na + 1
+                          phandles = list(dict.fromkeys(phandles))
+                          phandles = [phandle for phandle in phandles if phandle not in invalid_phandles]
+                          for s in tree.__selected__:
+                              if not re.search('cpu.*', s.abs_path):
+                                  node_list.append(s)
+
+                          phandles.extend( valid_phandles )
+                          # Delete the unmapped nodes for a53
+                          invalid_nodes = []
+                          ignore_list = ['psu_apu', 'psu_bbram_0', 'psu_cci_gpv', 'psu_crf_apb', 'psu_crl_apb',
+                                         'psu_csu_0', 'psu_ddr_phy', 'psu_ddr_qos_ctrl', 'psu_ddr_xmpu0_cfg', 'psu_ddr_xmpu1_cfg',
+                                         'psu_ddr_xmpu2_cfg', 'psu_ddr_xmpu3_cfg', 'psu_ddr_xmpu4_cfg', 'psu_ddr_xmpu5_cfg', 'psu_efuse',
+                                         'psu_fpd_gpv', 'psu_fpd_slcr', 'psu_fpd_slcr_secure', 'psu_fpd_xmpu_cfg', 'psu_fpd_xmpu_sink',
+                                         'psu_iou_scntr', 'psu_iou_scntrs', 'psu_iousecure_slcr', 'psu_iouslcr_0', 'psu_lpd_slcr',
+                                         'psu_lpd_slcr_secure', 'psu_lpd_xppu_sink', 'psu_mbistjtag', 'psu_message_buffers', 'psu_ocm_xmpu_cfg',
+                                         'psu_pcie_attrib_0', 'psu_pcie_dma', 'psu_pcie_high1', 'psu_pcie_high2', 'psu_pcie_low',
+                                         'psu_pmu_global_0', 'psu_qspi_linear_0', 'psu_rpu', 'psu_rsa', 'psu_siou']
+                          for node1 in node_list:
+                              match = 0
+                              if node1.propval('status') != ['']:
+                                  if 'disabled' in node1.propval('status', list)[0]:
+                                      continue
+                              for handle in phandles:
+                                  if handle and handle == node1.phandle:
+                                      try:
+                                          if not re.search('xlnx,zynqmp-ipi-mailbox', node1['compatible'].value[0]):
+                                              match += 1
+                                      except:
+                                          match += 1
+                              if match == 0:
+                                  invalid_nodes.append(node1)
+                              try:
+                                  if re.search('xlnx,axi-bram-ctrl', node1['compatible'].value[0]):
+                                      invalid_nodes.append(node1)
+                              except:
+                                  pass
+                              if node1.props('compatible') != [] and 'xlnx,zynqmp-ipi-mailbox' in node1.props('compatible')[0].value:
+                                  invalid_nodes.append(node1)
+                              if node1.props('xlnx,ip-name') and 'sd_fec' in node1.props('xlnx,ip-name')[0].value:
+                                  sd_fec_valid_prop_vals = [
+                                      'clock-names', 'clocks', 'compatible', 'interrupt-names', 'interrupt-parent', 'interrupts',
+                                      'reg', 'xlnx,sdfec-code', 'xlnx,sdfec-din-width', 'xlnx,sdfec-din-words', 'xlnx,sdfec-dout-width',
+                                      'xlnx,sdfec-dout-words', 'xlnx,ip-name', 'xlnx,name', 'status', 'phandle'
+                                  ]
+                                  node_prop_list = list(node1.__props__.keys())
+                                  for prop in node_prop_list:
+                                      if prop not in sd_fec_valid_prop_vals:
+                                          node1.delete(prop)
+                              if node1.props('xlnx,ip-name') and 'usp_rf_data_converter' in node1.props('xlnx,ip-name')[0].value:
+                                  usp_rfdc_valid_prop_vals = [
+                                      'clock-names', 'clocks', 'compatible', 'num-insts', 'param-list', 'reg', 'xlnx,ip-name',
+                                      'xlnx,name', 'status', 'phandle'
+                                  ]
+                                  node_prop_list = list(node1.__props__.keys())
+                                  for prop in node_prop_list:
+                                      if prop not in usp_rfdc_valid_prop_vals:
+                                          node1.delete(prop)
+                              ignore_node = [node1 for ipname in ignore_list if re.search(ipname, node1.name)]
+                              if ignore_node:
+                                  invalid_nodes.append(ignore_node[0])
+
+                          for node1 in invalid_nodes:
+                              tree.delete(node1)
+
+                          # Update memory nodes as per address-map cluster mapping
+                          memnode_list = tree.nodes('/memory@.*')
+                          for node1 in memnode_list:
+                              # Check whether the memory node is mapped to cpu cluster or not
+                              mem_phandles = [handle for handle in phandles if handle == node1.phandle]
+                              prop_val = []
+                              if mem_phandles:
+                                  mem_phandles = list(dict.fromkeys(mem_phandles))
+                                  indx_list = [index for index,handle in enumerate(address_map) for val in mem_phandles if handle == val]
+                                  for inx in indx_list:
+                                      start = [address_map[inx+i+1] for i in range(na)]
+                                      # start addresss is non zero means 40-bit address update it accordingly
+                                      if na == 2 and start[0] != 0:
+                                          reg = int(f"{hex(start[0])}{start[1]:08x}", base=16)
+                                          prop_val.append(reg)
+                                      elif na == 2:
+                                          prop_val.append(start[1])
+                                      else:
+                                          prop_val.append(start[0])
+                                      prop_val.append(address_map[inx+2*na])
+                              modify_val = update_mem_node(node1, prop_val)
+                              node1['reg'].value = modify_val
+
+                              # Update symbol node referneces
+                              symbol_node = tree['/__symbols__']
+                              prop_list = list(symbol_node.__props__.keys())
+                              match_label_list = []
+                              for n in tree['/'].subnodes():
+                                  matched_label = get_label(tree, symbol_node, n)
+                                  if matched_label:
+                                      match_label_list.append(matched_label)
+                              for prop in prop_list:
+                                  if prop not in match_label_list:
+                                      tree['/__symbols__'].delete(prop)
+                      ";
+                };
+        };
+};

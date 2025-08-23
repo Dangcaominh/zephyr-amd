@@ -1,0 +1,173 @@
+/*
+ * Copyright (c) 2020 Xilinx Inc. All rights reserved.
+ *
+ * Author:
+ *       Appana Durga Kedareswara Rao <appanad.durga.rao@xilinx.com>
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ */
+
+/dts-v1/;
+
+/ {
+        compatible = "system-device-tree-v1";
+        lops {
+                // compatible = "system-device-tree-v1,lop";
+                lop_0 {
+                        // node name modify
+                        compatible = "system-device-tree-v1,lop,modify";
+                        modify = "/cpus-a72@0/::/cpus/";
+                };
+                lop_1 {
+                        // modify to "nothing", is a remove operation
+                        compatible = "system-device-tree-v1,lop,select-v1";
+                        select_1;
+                        select_2 = "/.*:compatible:.*arm,cortex-r5.*";
+                        select_3 = "/.*:compatible:.*pmc-microblaze.*";
+                        select_4 = "/.*:compatible:.*psm-microblaze.*";
+                };
+                lop_2 {
+                        compatible = "system-device-tree-v1,lop,code-v1";
+                        code = "
+                            # Check for domain node
+                            for s in tree.__selected__:
+                                tree.delete(s.parent)
+                                tree.delete(s)
+                        ";
+                };
+                lop_4 {
+                        // modify to "nothing", is a remove operation
+                        compatible = "system-device-tree-v1,lop,modify";
+                        modify = "/rpu-bus::";
+                };
+                lop_5 {
+                      compatible = "system-device-tree-v1,lop,select-v1";
+                      // clear any old selections
+                      select_1;
+                      select_2 = "/domains";
+                };
+                lop_6 {
+                      compatible = "system-device-tree-v1,lop,select-v1";
+                      // clear any old selections
+                      select_1;
+                      select_2 = "/cpus/.*:compatible:.*arm,cortex-a72.*";
+                      select_3 = "/.*:status:.*okay.*";
+                      select_4 = "/.*:status:.*disabled.*";
+                      select_5 = "/.*:device_type:.*memory.*";
+                      select_6 = "/domains";
+                };
+                lop_7 {
+                        // modify to "nothing", is a remove operation
+                        compatible = "system-device-tree-v1,lop,modify";
+                        modify = "/memory@fffc0000::";
+                };
+                lop_8 {
+                      compatible = "system-device-tree-v1,lop,code-v1";
+                      code = "
+                          from baremetalconfig_xlnx import get_label
+                          # Check for domain node
+                          domain_node = []
+                          for n in __selected__:
+                              if re.search('domains', n.name):
+                                  domain_node = n
+                          # Peipheral node handling
+                          invalid_phandles = []
+                          if domain_node:
+                              valid_phandles = []
+                              for n in domain_node.subnodes():
+                                  if n.propval('access') != [''] and  n.propval('os,type') != ['']:
+                                      if re.search('linux', n.propval('os,type', list)[0]):
+                                          continue # domain procesing alread occurred. do nothing here.
+                                      else:
+                                          invalid_phandles.extend(n.propval('access'))
+
+                              invalid_phandles = [phandle for phandle in invalid_phandles if phandle not in valid_phandles]
+                              invalid_phandles = list(dict.fromkeys(invalid_phandles))
+
+                          node_list = []
+                          address_map = node.parent['address-map'].value
+                          na = node.parent['#ranges-address-cells'].value[0]
+                          ns = node.parent['#ranges-size-cells'].value[0]
+                          cells = na + ns
+                          phandles = []
+                          tmp = na
+                          while tmp < len(address_map):
+                              phandles.append(address_map[tmp])
+                              tmp = tmp + cells + na + 1
+                          phandles = list(dict.fromkeys(phandles))
+                          phandles = [phandle for phandle in phandles if phandle not in invalid_phandles]
+                          for s in tree.__selected__:
+                              if not re.search('cpu.*', s.abs_path):
+                                  node_list.append(s)
+                          # Delete the unmapped nodes for a72
+                          invalid_nodes = []
+                          for node1 in node_list:
+                              try:
+                                  if re.search('xlnx,axi-bram-ctrl', node1['compatible'].value[0]):
+                                      invalid_nodes.append(node1)
+                              except:
+                                  pass
+                          ignore_ip_list = ['xlconstant', 'proc_sys_reset', 'noc_mc_ddr4',
+                                            'psv_apu', 'psv_coresight_a720_dbg', 'psv_coresight_a720_etm',
+                                            'axi_noc', 'psv_coresight_a720_pmu', 'psv_coresight_a720_cti',
+                                            'psv_coresight_a721_dbg', 'psv_coresight_a721_etm', 
+                                            'psv_coresight_a721_pmu', 'psv_coresight_a721_cti',
+                                            'psv_coresight_a721_pmu', 'psv_coresight_a721_cti',
+                                            'psv_coresight_apu_ela', 'psv_coresight_apu_etf',
+                                            'psv_coresight_apu_fun', 'psv_coresight_cpm_atm', 'psv_coresight_cpm_cti2a']
+                          for node1 in node_list:
+                              match = 0
+                              if 'tcm' in node1.name:
+                                  continue
+
+                              if node1.propval('status') != ['']:
+                                  if 'disabled' in node1.propval('status', list)[0]:
+                                      continue
+
+                              for handle in phandles:
+                                  if handle == node1.phandle:
+                                      match += 1
+                              if match == 0:
+                                  invalid_nodes.append(node1)
+                              ignore_node = [node1 for ipname in ignore_ip_list if re.search(ipname, node1.name)]
+                              if ignore_node:
+                                  invalid_nodes.append(ignore_node[0])
+
+                          for node1 in invalid_nodes:
+                              tree.delete(node1)
+
+                          # Update symbol node referneces
+                          symbol_node = tree['/__symbols__']
+                          prop_list = list(symbol_node.__props__.keys())
+                          match_label_list = []
+                          for n in tree['/'].subnodes():
+                              matched_label = get_label(tree, symbol_node, n)
+                              if matched_label:
+                                  match_label_list.append(matched_label)
+                          for prop in prop_list:
+                              if prop not in match_label_list:
+                                  tree['/__symbols__'].delete(prop)
+                      ";
+                };
+                lop_9 {
+                       // this is removing a clock and breaking output
+                       // remove all SRAM banks that are not referenced via phandle in openamp use case
+                       compatible = "system-device-tree-v1,lop,code-v1";
+                       code = "
+                        n = node.tree['/']
+                        phandles = []
+                        compat_strs = ['xlnx,psv-tcm-global', 'mmio-sram', 'xlnx,psv-r5-tcm', 'xlnx,psv-r5-tcm-1.0']
+                        for i in n.subnodes():
+                            if 'xilinx,r5f' in i.propval('compatible'):
+                                sram_prop = i.props('sram')[0].value
+                                for j in sram_prop:
+                                    phandles.append(j)
+                        for i in n.subnodes():
+                            for compat in compat_strs:
+                                if compat in i.propval('compatible') and i.phandle not in phandles:
+                                    tree.delete(i)
+                       ";
+                };
+
+        };
+};

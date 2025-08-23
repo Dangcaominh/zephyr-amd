@@ -12,8 +12,9 @@ config MBV_CSR_DATA_WIDTH
   default 32
 
 config SYS_CLOCK_HW_CYCLES_PER_SEC
-  default $(dt_node_int_prop_int,/cpus/cpu@0,clock-frequency)
+  default 100000000
+
 config NUM_IRQS
-  default 14
+  default 16
 
 endif
