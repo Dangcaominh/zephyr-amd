@@ -29,10 +29,14 @@ struct xlnx_mailbox_config
 {
 	struct xlnx_mailbox_regs* base;
 	struct k_spinlock lock;
-	uint32_t fifo_depth;
+    uint32_t fifo_depth;
+    void (*irq_connect)(void);
+
 };
 
 struct xlnx_mailbox_data
 {
-	mbox_callback_t* callback;
+    mbox_callback_t* callback;
 };
+
+#define MAILBOX_IRQ_FLAGS 0

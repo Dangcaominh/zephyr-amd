@@ -205,7 +205,7 @@
         			compatible = "xlnx,mailbox";
         			xlnx,recv-it = <0>;
         			xlnx,ip-name = "mailbox";
-                    #mbox-cells = <16>;
+                                #mbox-cells = <16>;
         			reg = <0x43600000 0x10000>;
         			xlnx,send-it = <0>;
         			xlnx,name = "IPC_Mailbox";
