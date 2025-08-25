@@ -19,7 +19,14 @@ LOG_MODULE_REGISTER(xlnx_mailbox, CONFIG_MBOX_LOG_LEVEL);
 static void xlnx_mailbox_irq_handler(const void* data)
 {
 	struct device* dev = (struct device*)data;
+	struct xlnx_mailbox_config* config = (struct xlnx_mailbox_config *)(dev->config);
+	struct xlnx_mailbox_regs* regs = (struct xlnx_mailbox_regs*)(config->base);
 	LOG_INF("Interrupt invoked");
+	while (!(regs->status & 1))
+	{
+		LOG_INF("Received data %u", regs->rddata);
+	}	
+	regs->is = 0x2;
 }
 
 static int xlnx_mailbox_send(const struct device* dev, mbox_channel_id_t channel_id, const struct mbox_msg* msg)
@@ -32,7 +39,7 @@ static int xlnx_mailbox_send(const struct device* dev, mbox_channel_id_t channel
 		return -EINVAL;
 	}
 
-	if (regs->status & (1 << 3))
+	if (!(regs->status & (1 << 2)))
 	{
 		LOG_ERR("Mailbox has reached interrupt threshold");
 		return -EAGAIN;
@@ -93,12 +100,13 @@ static uint32_t xlnx_mailbox_max_channels_get(const struct device* dev)
 #define xlnx_mailbox_register_irq(inst)				\
 static void xlnx_mailbox_register_irq_##inst(void)	\
 {													\
-	IRQ_CONNECT(DT_IRQ(DT_DRV_INST(inst), irq),		\
-		DT_IRQ(DT_DRV_INST(inst), priority),		\
+	IRQ_CONNECT(DT_INST_IRQN(inst),					\
+		DT_INST_IRQ(inst, priority),				\
 		xlnx_mailbox_irq_handler,					\
 		DEVICE_DT_INST_GET(inst),					\
 		MAILBOX_IRQ_FLAGS);							\
-	irq_enable(DT_IRQ(DT_DRV_INST(inst), irq));		\
+	irq_enable(DT_INST_IRQN(inst));					\
+	LOG_INF("I am here");							\
 }													\
 
 static int xlnx_mailbox_init(const struct device* dev)
