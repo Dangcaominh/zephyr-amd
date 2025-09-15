@@ -115,17 +115,16 @@
                 };
         };
 
-        ps7_ddr_0_memory: memory@00100000 {
+        ps7_ddr_0_memory: memory@30000000 {
                 device_type = "memory";
-                reg = <0x28000000 0x8000000 0x30000000 0x10000000>;
-                phandle = <0x2>;
+                reg = <0x30000000 0x1000000>; /* 16 MB RAM */
         };
 
         chosen {
                 stdout-path = &uart1;
                 zephyr,console = &uart1;
                 zephyr,shell-uart = &uart1;
-                zephyr,sram = "/memory@00100000";
+                zephyr,sram = "/memory@30000000";
         };
 
         aliases {
@@ -193,7 +192,8 @@
                         compatible = "xlnx,mailbox";
                         xlnx,recv-it = <0>;
                         xlnx,ip-name = "mailbox";
-                        #mbox-cells = <16>;
+                        #mbox-cells = <1>;
+                        fifo-depth = <16>;
                         reg = <0x43600000 0x10000>;
                         xlnx,send-it = <0>;
                         xlnx,name = "IPC_Mailbox";

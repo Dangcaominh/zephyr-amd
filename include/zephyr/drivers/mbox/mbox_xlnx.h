@@ -10,6 +10,9 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/spinlock.h>
 
+#define     STI_MASK    BIT(0)
+#define     RTI_MASK    BIT(1)
+
 typedef struct xlnx_mailbox_regs
 {
     uint32_t wrdata;     // 0x00 : Write Data (WO)
@@ -36,7 +39,9 @@ struct xlnx_mailbox_config
 
 struct xlnx_mailbox_data
 {
-    mbox_callback_t* callback;
+    mbox_callback_t callback;
+    void* userdata;
+    uint32_t* rx_buff;
 };
 
 #define MAILBOX_IRQ_FLAGS 0

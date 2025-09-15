@@ -25,6 +25,12 @@ properties:
     default: 16
     required: false
     description: Send Interrupt Threshold
+
+  fifo-depth:
+    type: int
+    default: 16
+    required: true
+    description: Mailbox FIFO depth
   xlnx,ip-name:
     type: string
   xlnx,name:
